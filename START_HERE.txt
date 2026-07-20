@@ -1,0 +1,14 @@
+STUDYCHAT - QUICK START
+
+1. Open server\.env and add your Gemini key:
+   PORT=5000
+   GEMINI_API_KEY=YOUR_REAL_KEY
+   GEMINI_MODEL=gemini-3.5-flash
+
+2. Double-click start-studychat.bat
+
+3. Keep the black window open.
+
+4. Open http://localhost:5173
+
+This build uses the public npm registry and contains no internal package-lock URLs.
