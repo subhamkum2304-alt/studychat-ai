@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 function Chat() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -20,6 +22,32 @@ function Chat() {
       behavior: "smooth",
     });
   }, [messages, isLoading]);
+  useEffect(() => {
+  async function loadChats() {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chats`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setChatHistory(data.chats);
+      }
+    } catch (error) {
+      console.error("Chat history error:", error);
+    }
+  }
+
+  loadChats();
+}, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -144,7 +172,34 @@ function Chat() {
           >
             + New Chat
           </button>
+        <div className="mb-6">
+  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+    Recent Chats
+  </p>
 
+  {chatHistory.map((chat) => (
+    <button
+  key={chat._id}
+  type="button"
+  onClick={() => {
+    console.log(chat);
+    setSelectedChat(chat);
+
+    setMessages(
+      chat.messages.map((item) => ({
+        id: crypto.randomUUID(),
+        role: item.role,
+        text: item.content,
+      }))
+    );
+  }}
+  className="mb-2 w-full rounded-lg bg-slate-800 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+
+    >
+      {chat.title}
+    </button>
+  ))}
+</div>
           <div className="mt-8">
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
               Study Tools

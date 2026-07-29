@@ -6,7 +6,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { GoogleGenAI } from "@google/genai";
 import User from "./models/User.js";
+import Chat from "./models/Chat.js";
 import userRoutes from "./routes/userRoutes.js";
+import protect from "./middleware/authMiddleware.js";
 dotenv.config();
 
 const app = express();
@@ -237,7 +239,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", protect, async (req, res) => {
   const message = req.body?.message?.trim();
 
   if (!message) {
@@ -268,7 +270,22 @@ Use examples where useful.
 Student question: ${message}`;
 
     const result = await generateAnswer(ai, prompt);
-
+  const chat = new Chat({
+  user: req.user?._id, // agar login middleware nahi hai to baad me update karenge
+  title: message.substring(0, 40),
+  messages: [
+    {
+      role: "user",
+      content: message,
+    },
+    {
+      role: "assistant",
+      content: result.text,
+    },
+  ],
+});
+console.log("Saving chat...");
+await chat.save();
     return res.json({
       success: true,
       reply: result.text,
@@ -310,7 +327,24 @@ Student question: ${message}`;
     });
   }
 });
+app.get("/api/chats", protect, async (req, res) => {
+  try {
+    const chats = await Chat.find({ user: req.user._id })
+      .sort({ createdAt: -1 });
 
+    return res.json({
+      success: true,
+      chats,
+    });
+  } catch (error) {
+    console.error("Fetch chats failed:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      error: "Could not load chat history.",
+    });
+  }
+});
 app.use((_req, res) => {
   res.status(404).json({
     success: false,
