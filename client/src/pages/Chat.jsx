@@ -118,7 +118,25 @@ function Chat() {
           text: data.reply,
         },
       ]);
+      setChatHistory((current) => [
+  {
+    _id: crypto.randomUUID(),
+    title: cleanMessage.substring(0, 40),
+    messages: [
+      {
+        role: "user",
+        content: cleanMessage,
+      },
+      {
+        role: "assistant",
+        content: data.reply,
+      },
+    ],
+  },
+  ...current,
+]);
     } catch (error) {
+
       console.error("Chat error:", error);
 
       setMessages((currentMessages) => [
@@ -141,7 +159,7 @@ function Chat() {
     if (isLoading) {
       return;
     }
-
+      setSelectedChat(null);
     setMessages([
       {
         id: crypto.randomUUID(),
