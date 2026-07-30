@@ -27,6 +27,7 @@ function Chat() {
     try {
       const token = localStorage.getItem("token");
 
+      console.log(import.meta.env.VITE_API_URL);
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/chats`,
         {
@@ -66,6 +67,7 @@ function Chat() {
 
     setMessages((currentMessages) => [
       ...currentMessages,
+      
       userMessage,
     ]);
 
@@ -86,7 +88,9 @@ function Chat() {
           }),
         },
         body: JSON.stringify({
-          message: cleanMessage,
+  message: cleanMessage,
+  chatId: selectedChat?._id,
+
         }),
       });
 
@@ -118,6 +122,9 @@ function Chat() {
           text: data.reply,
         },
       ]);
+      if (data.chat) {
+  setSelectedChat(data.chat);
+}
       setChatHistory((current) => [
   {
     _id: crypto.randomUUID(),
@@ -170,7 +177,38 @@ function Chat() {
 
     setMessage("");
   }
+   async function deleteChat(chatId) {
+  try {
+    const token = localStorage.getItem("token");
 
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/chat/${chatId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Delete failed");
+    }
+
+    setChatHistory((current) =>
+      current.filter((chat) => chat._id !== chatId)
+    );
+
+    if (selectedChat?._id === chatId) {
+      startNewChat();
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Could not delete chat.");
+  }
+}
   return (
     <main className="min-h-[calc(100vh-73px)] bg-slate-950 px-3 py-4 text-white sm:px-4 sm:py-6">
       <div className="mx-auto flex min-h-[calc(100vh-105px)] max-w-6xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl sm:min-h-[calc(100vh-120px)] sm:rounded-3xl">
@@ -196,27 +234,37 @@ function Chat() {
   </p>
 
   {chatHistory.map((chat) => (
+  <div
+    key={chat._id}
+    className="mb-2 flex items-center gap-2"
+  >
     <button
-  key={chat._id}
-  type="button"
-  onClick={() => {
-    console.log(chat);
-    setSelectedChat(chat);
+      type="button"
+      onClick={() => {
+        setSelectedChat(chat);
 
-    setMessages(
-      chat.messages.map((item) => ({
-        id: crypto.randomUUID(),
-        role: item.role,
-        text: item.content,
-      }))
-    );
-  }}
-  className="mb-2 w-full rounded-lg bg-slate-800 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
-
+        setMessages(
+          chat.messages.map((item) => ({
+            id: crypto.randomUUID(),
+            role: item.role,
+            text: item.content,
+          }))
+        );
+      }}
+      className="flex-1 rounded-lg bg-slate-800 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
     >
       {chat.title}
     </button>
-  ))}
+
+    <button
+      type="button"
+      onClick={() => deleteChat(chat._id)}
+      className="rounded-lg bg-red-600 px-3 py-2 hover:bg-red-700"
+    >
+      🗑
+    </button>
+  </div>
+))}
 </div>
           <div className="mt-8">
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">

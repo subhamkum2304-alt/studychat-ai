@@ -240,6 +240,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 app.post("/api/chat", protect, async (req, res) => {
+  const chatId = req.body?.chatId;
   const message = req.body?.message?.trim();
 
   if (!message) {
@@ -270,6 +271,34 @@ Use examples where useful.
 Student question: ${message}`;
 
     const result = await generateAnswer(ai, prompt);
+    if (chatId) {
+  const existingChat = await Chat.findOne({
+    _id: chatId,
+    user: req.user._id,
+  });
+
+  if (existingChat) {
+    existingChat.messages.push(
+      {
+        role: "user",
+        content: message,
+      },
+      {
+        role: "assistant",
+        content: result.text,
+      }
+    );
+
+    await existingChat.save();
+
+    return res.json({
+      success: true,
+      reply: result.text,
+      model: result.model,
+      chat: existingChat,
+    });
+  }
+}
   const chat = new Chat({
   user: req.user?._id, // agar login middleware nahi hai to baad me update karenge
   title: message.substring(0, 40),
@@ -336,12 +365,41 @@ app.get("/api/chats", protect, async (req, res) => {
       success: true,
       chats,
     });
+
   } catch (error) {
     console.error("Fetch chats failed:", error.message);
 
     return res.status(500).json({
       success: false,
       error: "Could not load chat history.",
+    });
+  }
+});
+console.log("DELETE ROUTE LOADED");
+app.delete("/api/chat/:id", protect, async (req, res) => {
+  try {
+    const chat = await Chat.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        error: "Chat not found.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Chat deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete chat failed:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      error: "Could not delete chat.",
     });
   }
 });
@@ -394,4 +452,4 @@ async function startServer() {
   }
 }
 
-startServer();
+startServer(); 
